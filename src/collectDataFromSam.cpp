@@ -281,8 +281,7 @@ int processline(string line)
         printBase(headClippedBaseCounter);
         printBase(tailClippedBaseCounter);
 		cout << seqlength;
-        cout << endl;
-		
+        cout << '\n';
    }
    return 0;
 }
@@ -297,7 +296,6 @@ int processFile(const char * filename)
             processline(line);
         }
     }
-    cout << endl;
     return 0;
 }
 
@@ -311,7 +309,6 @@ int processStdin()
             processline(line);
         }
     }
-    cout << endl;
     return 0;
 }
 
@@ -339,8 +336,8 @@ int printheader()
 //print usage
 int usage(string programname)
 {
-    cout << "usage: " << programname << " <samfile>|<stdin>" << endl;
-    cout << "If stdin is used, please provide: -" << endl;
+    cerr << "usage: " << programname << " <samfile>|<stdin>" << endl;
+    cerr << "If stdin is used, please provide: -" << endl;
     return 0;
 }
 
@@ -354,7 +351,6 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     printheader();
-    cerr << argv[1] << endl;
     if (strcmp(argv[1],"-") == 0)
     {
         cerr << "Taking file from stdin!" << endl;
