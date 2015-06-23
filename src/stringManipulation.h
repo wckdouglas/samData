@@ -1,6 +1,5 @@
 #include <string>
 #include <sstream>
-#include <string>
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -49,13 +48,12 @@ void regexSeparate(string xstr, numList &nums, stringList &strs)
 	while (i < size)
 	{
 		x = xstr.at(i);
-		cout << i  << '\t'<< x << endl;
 		if (isdigit(x))
 		{
 			current = x - '0';
 			j = i + 1;
 			if (j < size){
-				while (isdigit(xstr.at(j)))
+				while (j < size && isdigit(xstr.at(j)))
 				{
 					y = xstr.at(j);
 					current = current * 10 + (y - '0');
@@ -63,25 +61,27 @@ void regexSeparate(string xstr, numList &nums, stringList &strs)
 					i++;
 				}
 			}
+//			cout << "pushed current:" << current << endl;
 			nums.push_back(current);
-			cout << "current:" << current << endl;
 		}
 		else 
 		{
-			string curString = "";
+			string curString;
+			curString = x;
 			j = i + 1;
 			if (j < size)
 			{
-				curString = x;
-				while (!isdigit(xstr.at(j)))
+				while (j < size && !isdigit(xstr.at(j)))
 				{
 					curString += xstr[j];
 					j ++;
 					i ++ ;
 				}
-				strs.push_back(string(curString));
 			}
+//			cout << "pushed string:" << curString << endl;
+			strs.push_back(string(curString));
 		}
 		i ++;
 	}
+	strs.push_back("END");
 }

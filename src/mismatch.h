@@ -45,26 +45,32 @@ numList getMismatchCount(stringList mismatchList)
         if (mismatchList[i] == "AtoC")
         {
             mismatchCount[0] += 1;
+//			cerr << "AtoC added"  << endl;
         }
         else if (mismatchList[i] == "AtoT")
         {
             mismatchCount[1] += 1;
+//			cerr << "AtoT added" << endl;
         }
         else if (mismatchList[i] == "AtoG")
         {
             mismatchCount[2] += 1;
+//			cerr << "AtoG added" << endl;
         }
         else if (mismatchList[i] == "CtoA")
         {
-            mismatchCount[3] += 1;
+            mismatchCount[3] += 1 ;
+//			cerr << "CtoA added" << endl;
         }
         else if (mismatchList[i] == "CtoT")
         {
             mismatchCount[4] += 1;
+//			cerr << "CtoT added" << endl;
         }
         else if (mismatchList[i] == "CtoG")
         {
             mismatchCount[5] += 1;
+//			cerr << "CtoG added" << endl;
         }
         else if (mismatchList[i] == "GtoA")
         {

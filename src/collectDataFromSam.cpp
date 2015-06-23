@@ -14,9 +14,9 @@
 
 //fix sequence, MDline, cigarLine
 stringList insertionAndMismatch(string cigarLine, string MDline, string sequence, stringList &insertion, 
-                                string &softclippedHead, string &softclippedTail, string id, string numOfMis)
+                                string &softclippedHead, string &softclippedTail, string id, int numOfMis)
 {
-    stringList mismatchList(atoi(numOfMis.c_str()));
+    stringList mismatchList(numOfMis);
     string fixedCigarLine, fixedSeq, mismatch, ref, read;
     int mis, i = 0, size = cigarLine.length();
     while( i < size)
@@ -49,14 +49,15 @@ stringList insertionAndMismatch(string cigarLine, string MDline, string sequence
             i ++;
         }
     }
-//    //debugging    
-//    cout << fixedCigarLine << endl;
-//    cout << MDline << endl;
-//    cout << fixedSeq  <<endl;
-//    cout << sequence << endl ;
-//    cout << cigarLine << endl;
-//    cout << softclippedHead << '\t' << softclippedTail << endl;
-
+	/*
+    //debugging    
+    cerr << fixedCigarLine << endl;
+    cerr << MDline << endl;
+    cerr << fixedSeq  <<endl;
+    cerr << sequence << endl ;
+    cerr << cigarLine << endl;
+    cerr << softclippedHead << '\t' << softclippedTail << endl;
+	*/
     //assertion
     assert(fixedCigarLine.length() == MDline.length());
     assert(fixedSeq.length() == MDline.length());
@@ -108,19 +109,19 @@ string processCigar(string cigarString, int &headClipped, int &tailClipped)
 }
 
 // create sequence-like MD string
-string creatMDstring(numList correctedMDnum, stringList correctedMDletter)
+string creatMDstring(numList MDnum, stringList MDletter)
 {
     string MDstring;
-    for (int i = 0; i < correctedMDletter.size(); i++)
+    for (int i = 0; i < MDnum.size(); i++)
     {
-        if (correctedMDletter[i][0] != '^' && correctedMDletter[i] != "N")
+        if (MDletter[i][0] != '^' && MDletter[i] != "N" && MDletter[i] != "END")
         {
-            MDstring.append(string(correctedMDnum[i],'='));
-            MDstring.append(correctedMDletter[i]);
+            MDstring.append(string(MDnum[i],'='));
+            MDstring.append(MDletter[i]);
         }
         else
         {
-            MDstring.append(string(correctedMDnum[i],'='));
+            MDstring.append(string(MDnum[i],'='));
         }
     }
     return MDstring;
@@ -129,44 +130,17 @@ string creatMDstring(numList correctedMDnum, stringList correctedMDletter)
 // correct MD sepearte list
 string correctMDstring(numList MDnum, stringList MDLetter, stringList &deletions)
 {
-    stringList correctedMDletter;
-    numList correctedMDnum;
     string MDList;
     int i = 0;
-    while (i < MDnum.size())
-    {
-        if (MDLetter[i] == "^")
-        {
-            correctedMDnum.push_back(MDnum[i]);
-        }
-        else if (MDLetter[i][0] == '^')
-        {
-            if (MDLetter[i+1][0]!='^')
-            {
-                correctedMDletter.push_back(MDLetter[i]);
-            }
-            else if (MDLetter[i+1].length() < MDLetter[i].length())
-            {
-                correctedMDletter.push_back(MDLetter[i]);
-            }
-        }
-        else if (MDLetter[i][0] != '^')
-        {
-            correctedMDnum.push_back(MDnum[i]);
-            correctedMDletter.push_back(MDLetter[i]);
-        }
-        i++;
-    }
-
     //make deletion list
-    for (int i = 0; i < correctedMDnum.size(); i ++)
+    for (int i = 0; i < MDnum.size(); i ++)
     {
-        if (correctedMDletter[i][0] == '^')
+        if (MDLetter[i][0] == '^')
         {
-            deletions.push_back(correctedMDletter[i]);
+            deletions.push_back(MDLetter[i]);
         }
     }
-    MDList  = creatMDstring(correctedMDnum,correctedMDletter);
+    MDList  = creatMDstring(MDnum,MDLetter);
     return MDList;
 }
 
@@ -240,7 +214,8 @@ int processline(string line)
     numList headClippedBaseCounter, tailClippedBaseCounter;
     string chrom, id, sequence,quality;
     string deletionsString, insertionString, clippedString;
-    string  XGfield, NMfield, MDfield, numberOfMismatch, numberOfGapExtention;
+    string  XGfield, NMfield, MDfield;
+	int numberOfMismatch, numberOfGapExtention;
     string cigarString, MDline, cigarLine;
     int i, seqlength, headClipped = 0, tailClipped = 0;
     double averageQualityScore, head5Qual, end5Qual;
@@ -265,14 +240,15 @@ int processline(string line)
         findField(columns, XGfield, NMfield, MDfield);
 
         //get field numbers
-        numberOfMismatch = extractField(NMfield);
-        numberOfGapExtention = extractField(XGfield);
+        numberOfMismatch = atoi(extractField(NMfield).c_str());
+        numberOfGapExtention = atoi(extractField(XGfield).c_str());
 
         MDline = processMD(MDfield, deletions);
 
         cigarLine = processCigar(cigarString, headClipped, tailClipped);
         mismatchList = insertionAndMismatch(cigarLine, MDline, sequence, insertions, softclippedHead, softclippedTail, id, numberOfMismatch);
         mismatchBaseCounter = getMismatchCount(mismatchList);
+		int sumOfMismatch = std::accumulate(mismatchBaseCounter.begin(), mismatchBaseCounter.end(), 0);
         
         //count deletion and insertion
         deletionsString = concatString(deletions);
@@ -286,13 +262,15 @@ int processline(string line)
         assert (softclippedTail.length() == tailClipped);
         assert (softclippedHead.length() == headClipped);
         assert(accumulate(baseCounter.begin(),baseCounter.end(),0) == seqlength);
+		//assert(sumOfMismatch + numberOfGapExtention == numberOfMismatch);
 
+		
         // print out result
-        cout << id << "\t" << seqlength << "\t" ;
+        cout << id << "\t";
         //print out base counts
         printBase(baseCounter) ;
         cout << averageQualityScore << "\t" <<  head5Qual << "\t" << end5Qual << "\t";
-        cout << numberOfGapExtention << "\t" << atoi(numberOfMismatch.c_str()) - atoi(numberOfGapExtention.c_str()) << "\t";
+        cout << numberOfGapExtention << "\t" << numberOfMismatch - numberOfGapExtention << "\t";
         //print mismatch
         // AtoC, AtoT, AtoG, CtoA, CtoT, CtoG, GtoA, GtoT, GtoC, TtoA,TtoC, TtoG
         printBase(mismatchBaseCounter);
@@ -302,7 +280,9 @@ int processline(string line)
         cout << headClipped << "\t" << tailClipped << "\t";
         printBase(headClippedBaseCounter);
         printBase(tailClippedBaseCounter);
+		cout << seqlength;
         cout << endl;
+		
    }
    return 0;
 }
@@ -338,7 +318,7 @@ int processStdin()
 //print headers
 int printheader()
 {            
-    cout << "ID\tseqlength\t";
+    cout << "ID\t";
     cout << "A\tC\tT\tG\tN\t";
     cout << "averageQual\tfirst5Qual\tlast5Qual\t";
     cout << "gapExtention\tmismatch\t";
@@ -350,8 +330,9 @@ int printheader()
     cout << "inserted_A\tinserted_C\tinserted_T\tinserted_G\tinserted_N\t";
     cout << "headClipped\ttailclipped\t";
     cout << "headClipped_A\theadClipped_C\theadClipped_T\theadClipped_G\theadClipped_N\t";
-    cout << "tailClipped_A\ttailClipped_C\ttailClipped_T\ttailClipped_G\ttailClipped_N";
-    cout <<endl;
+    cout << "tailClipped_A\ttailClipped_C\ttailClipped_T\ttailClipped_G\ttailClipped_N\t";
+	cout << "seqlength";
+    cout << endl;
     return 0;
 }    
 
