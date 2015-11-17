@@ -12,7 +12,13 @@
 #include "mismatch.h"
 
 
-//fix sequence, MDline, cigarLine
+// Fix sequence, MDline, cigarLine
+// i.  collect clipped bases
+// ii.  collect insertion bases
+// iii. remove insertion bases on 
+//      1. query sequence and 
+//      2. cigar line
+// iv. count mismatch pattern (e.g. AtoG, GtoT)
 stringList insertionAndMismatch(string cigarLine, string MDline, string sequence, stringList &insertion, 
                                 string &softclippedHead, string &softclippedTail, string id, int numOfMis)
 {
@@ -79,7 +85,10 @@ stringList insertionAndMismatch(string cigarLine, string MDline, string sequence
     return mismatchList;
 }
 
-//process cigar string to remove D
+// process cigar string to remove D
+// making sequence-like cigar line
+// for example: 6M10D19M
+// MMMMMMDDDDDDDDDDMMMMMMMMMMMMMMMMMMM
 string processCigar(string cigarString, int &headClipped, int &tailClipped)
 {
     stringList cigarLetter;
@@ -89,15 +98,17 @@ string processCigar(string cigarString, int &headClipped, int &tailClipped)
     int operators = cigarNum.size();
     for (int i=0 ; i < operators; i++)
     {
+        // remove deletion and hard clipped: not exist
+        // in the query sequence anyways
         if (cigarLetter[i] != "D" && cigarLetter[i] != "H")
         {
             if (i == 0 && cigarLetter[i] == "S")
             {
-                headClipped = cigarNum[0];
+                headClipped = cigarNum[0]; // determine how many bases clipped at head
             }
             else if (cigarLetter[i] == "S")
             {
-                tailClipped = cigarNum[i];
+                tailClipped = cigarNum[i];  // determine how many bases clipped at tail
             }
             for (int j = 0; j < cigarNum[i]; j++)
             {
@@ -110,6 +121,10 @@ string processCigar(string cigarString, int &headClipped, int &tailClipped)
 }
 
 // create sequence-like MD string
+// returning a line with mismatch and match annotation
+// for each base, for example:
+// MD:1A20
+// result: =A====================
 string creatMDstring(numList MDnum, stringList MDletter)
 {
     string MDstring;
@@ -129,6 +144,7 @@ string creatMDstring(numList MDnum, stringList MDletter)
 }
 
 // correct MD sepearte list
+// also collect deletion base list
 string correctMDstring(numList MDnum, stringList MDLetter, stringList &deletions)
 {
     string MDList;
@@ -145,7 +161,11 @@ string correctMDstring(numList MDnum, stringList MDLetter, stringList &deletions
     return MDList;
 }
 
-//function for processing MD strings
+// function for processing MD strings
+// returning a line with mismatch and match annotation
+// for each base, for example:
+// MD:1A20
+// result: =A====================
 string processMD(string MDfield, stringList &deletions)
 {
     string MD, MDstring;
@@ -236,15 +256,16 @@ int processline(string line)
         quality = columns[10];
         seqlength = sequence.length();
         
-        baseCounter = getBaseCount(sequence);
-        averageQualityScore = averageQual(quality);
-        head5Qual = averageQual(quality.substr(0,5));
-        end5Qual = averageQual(quality.substr(seqlength-5,5));
+        baseCounter = getBaseCount(sequence); // collect base content
+        averageQualityScore = averageQual(quality); // whole sequence quality
+        head5Qual = averageQual(quality.substr(0,5)); // first 5 base quality
+        end5Qual = averageQual(quality.substr(seqlength-5,5)); //end 5 base quality
 
         //define extra field
+        // for XG, NM and MD
         findField(columns, XGfield, NMfield, MDfield);
 
-        //get field numbers
+        //get field item
         numberOfMismatch = atoi(extractField(NMfield).c_str());
 		if (XGfield.at(0) == 'X')
 		{
@@ -255,7 +276,8 @@ int processline(string line)
 			numberOfGapExtention = 0;
 		}
 
-        MDline = processMD(MDfield, deletions);
+        // creating a line using MDfield
+        MDline = processMD(MDfield, deletions);  
 
         cigarLine = processCigar(cigarString, headClipped, tailClipped);
         mismatchList = insertionAndMismatch(cigarLine, MDline, sequence, insertions, softclippedHead, softclippedTail, id, numberOfMismatch);
