@@ -23,13 +23,13 @@ stringList insertionAndMismatch(string cigarLine, string MDline, string sequence
     {
         if (cigarLine.at(i) == 'S')
         {
-            if ( i == 0)
+            if (i == 0)
             {
                 while ( cigarLine.at(i) == 'S')
                 {
                     i ++ ;
                 }
-                softclippedHead = sequence.substr(0,i);
+				softclippedHead = sequence.substr(0,i);
             }
             else
             {
@@ -89,7 +89,7 @@ string processCigar(string cigarString, int &headClipped, int &tailClipped)
     int operators = cigarNum.size();
     for (int i=0 ; i < operators; i++)
     {
-        if (cigarLetter[i] != "D")
+        if (cigarLetter[i] != "D" && cigarLetter[i] != "H")
         {
             if (i == 0 && cigarLetter[i] == "S")
             {
@@ -105,6 +105,7 @@ string processCigar(string cigarString, int &headClipped, int &tailClipped)
             }
         }
     }
+    remove(cigarLine.begin(),cigarLine.end(),'H');
     return cigarLine;
 }
 
@@ -206,15 +207,18 @@ int printBase(numList bases)
 }
 
 //main processing function
+// controlling flow for collecting data
+// from each alignment
 int processline(string line)
 {    
+    // variable definition
     stringList columns, deletions, insertions, mismatchList;
     string softclippedHead, softclippedTail;
     numList baseCounter, deletionBaseCounter, insertionBaseCounter, mismatchBaseCounter;
     numList headClippedBaseCounter, tailClippedBaseCounter;
     string chrom, id, sequence,quality;
     string deletionsString, insertionString, clippedString;
-    string  XGfield, NMfield, MDfield;
+    string  XGfield = "A", NMfield, MDfield;
 	int numberOfMismatch, numberOfGapExtention;
     string cigarString, MDline, cigarLine;
     int i, seqlength, headClipped = 0, tailClipped = 0;
@@ -222,6 +226,7 @@ int processline(string line)
 
     columns = split(line,'\t');
     chrom = columns[2];
+    // only collect data from aligned reads
     if (chrom != "*")
     {
         //define columns
@@ -241,7 +246,14 @@ int processline(string line)
 
         //get field numbers
         numberOfMismatch = atoi(extractField(NMfield).c_str());
-        numberOfGapExtention = atoi(extractField(XGfield).c_str());
+		if (XGfield.at(0) == 'X')
+		{
+			numberOfGapExtention = atoi(extractField(XGfield).c_str());
+		}
+		else
+		{
+			numberOfGapExtention = 0;
+		}
 
         MDline = processMD(MDfield, deletions);
 
@@ -286,6 +298,7 @@ int processline(string line)
    return 0;
 }
 
+// processing file line by line
 int processFile(const char * filename)
 {
     ifstream samfile (filename);
@@ -342,6 +355,8 @@ int usage(string programname)
 }
 
 //main function
+// This function collects mismatch, InDel and GC contens 
+// from sam files
 int main(int argc, char *argv[])
 {
     if (argc != 2)
